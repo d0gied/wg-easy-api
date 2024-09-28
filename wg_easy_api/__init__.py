@@ -1,0 +1,1 @@
+from .wg_easy import WGEasy

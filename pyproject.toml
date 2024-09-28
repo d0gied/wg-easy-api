@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "wg-easy-api"
+version = "0.1.0"
+description = "API wrapper for wg-easy"
+authors = ["d0gied <german.n.u@mail.ru>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+aiohttp = "^3.10.7"
+pydantic = "^2.9.2"
+  
+[tool.poetry.group.dev.dependencies]  
+ruff = "^0.4.4"  
+black = "^24.4.2"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.3"
+pytest-asyncio = "^0.24.0"
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "module"
+testpaths = ["./tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[project.urls]
+Homepage = "https://github.com/d0gied/wg-easy-api"
+Issues = "https://github.com/d0gied/wg-easy-api/issues"
