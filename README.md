@@ -26,7 +26,7 @@ async def main():
     await wg.enable_client(client.id) # Enable client
 
     with open("client.conf", "w") as f:
-        await f.write(await wg.get_client_config(client.id)) # Get client configuration
+        f.write(await wg.get_client_config(client.id)) # Get client configuration
 
     with open("qrcode.svg", "wb") as f:
         await f.write(await wg.get_client_qrcode(client.id)) # Get client QR code
