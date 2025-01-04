@@ -2,6 +2,7 @@ from wg_easy_api import WGEasy
 import pytest
 from tests.config import Config
 
+
 @pytest.mark.asyncio
 async def test_client():
     wg_easy = WGEasy(Config.MOCK_ENDPOINT, Config.MOCK_PASSWORD)
@@ -46,6 +47,4 @@ async def test_client():
     await wg_easy.delete_client(client.id)
     found_client = await wg_easy.get_client(client.id)
     assert found_client is None
-
-
 

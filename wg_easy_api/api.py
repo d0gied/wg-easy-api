@@ -73,7 +73,7 @@ class WGEasyAPIConnector:
                 raise NotAuthenticatedError("You need to authenticate first")
             response.raise_for_status()
             return await response.text()
-    
+
     @autocontextmanager
     async def get_image(self, path: str) -> bytes:
         async with self.session.get(f"{self.api_url}/{path}") as response:
@@ -173,9 +173,14 @@ class WGEasyAPIConnector:
         ) == models.Success(success=True)
 
     # TODO: PUT /wireguard/client/{client_id}/expireDate/
-    # TODO: PUT /wireguard/restore
-    # TODO: GET /ui-sort-clients
 
+    async def backup_config(self):
+        return await self.raw_request("GET", "wireguard/backup")
+
+    async def restore_config(self, config: str):
+        return await self.raw_request("PUT", "wireguard/restore", data=config)
+
+    # TODO: GET /ui-sort-clients
 
     async def get_client_config(self, client_id: str):
         return await self.raw_request(
