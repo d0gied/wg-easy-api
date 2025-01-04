@@ -29,7 +29,7 @@ async def main():
         f.write(await wg.get_client_config(client.id)) # Get client configuration
 
     with open("qrcode.svg", "wb") as f:
-        await f.write(await wg.get_client_qrcode(client.id)) # Get client QR code
+        f.write(await wg.get_client_qrcode(client.id)) # Get client QR code
     
     await wg.delete_client(client.id) # Delete client
 
