@@ -15,9 +15,9 @@ repository = "https://github.com/d0gied/wg-easy-api"
 python = "^3.12"
 aiohttp = "^3.10.7"
 pydantic = "^2.9.2"
-  
-[tool.poetry.group.dev.dependencies]  
-ruff = "^0.4.4"  
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.4"
 black = "^24.4.2"
 
 [tool.poetry.group.test.dependencies]
