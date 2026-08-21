@@ -1,79 +1,111 @@
-from functools import wraps
-from .api import WGEasyAPIConnector
-from . import models
+from typing import TypeVar, overload
+
+from aiohttp import BasicAuth, ClientResponse, ClientSession, encode_basic_auth
+from pydantic import BaseModel, TypeAdapter
+
+import wg_easy_api.models as models
+
+T = TypeVar("T")
+M = TypeVar("M", bound=BaseModel)
+
+
+@overload
+async def validate_response(resp: ClientResponse, model: TypeAdapter[T]) -> T: ...
+
+
+@overload
+async def validate_response(resp: ClientResponse, model: type[M]) -> M: ...
+
+
+async def validate_response(
+    resp: ClientResponse, model: type[M] | TypeAdapter[T]
+) -> M | T:
+    json = await resp.json()  # pyright: ignore[reportAny]
+    # print(json)
+    if isinstance(model, TypeAdapter):
+        return model.validate_python(json)
+    else:
+        return model.model_validate(json)
 
 
 class WGEasy:
-    @staticmethod
-    def _autoauth(func):
-        @wraps(func)
-        async def wrapper(self, *args, **kwargs):
-            if not await self.is_authenticated():
-                await self.connector.authenticate(self.password)
-            return await func(self, *args, **kwargs)
+    base_url: str
+    api_url: str
+    auth: str
 
-        return wrapper
+    def __init__(self, base_url: str, username: str, password: str):
+        self.base_url = base_url.rstrip("/")
+        self.api_url = f"{self.base_url}/api"
+        self.auth = encode_basic_auth(username, password)
 
-    def __init__(self, base_url: str, password: str):
-        self.connector = WGEasyAPIConnector(base_url)
-        self.password = password
+    def _get_session(self):
+        return ClientSession(headers={"Authorization": self.auth})
 
-    async def is_authenticated(self):
-        return (await self.connector.get_session()).authenticated
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, str] | None = None,
+    ) -> ClientResponse:
+        url = f"{self.api_url}/{path.lstrip('/')}"
+        async with self._get_session() as session:
+            resp = await session.request(method, url, json=json)
+            if not resp.ok:
+                json = await resp.json()  # pyright: ignore[reportAny]
+                print(json)
+                error_detail = models.ErrorModel.model_validate(json)
+                raise models.ApiError(error_detail)
+            return resp
 
-    @_autoauth
-    async def get_clients(self):
-        return await self.connector.get_clients()
-
-    @_autoauth
-    async def get_client(self, client_id: str) -> models.Client | None:
-        return next(
-            (client for client in await self.get_clients() if client.id == client_id),
-            None,
+    async def get_clients(self) -> list[models.Client]:
+        resp = await self._request(
+            "GET",
+            "client",
         )
+        return await validate_response(resp, TypeAdapter(list[models.Client]))
 
-    @_autoauth
-    async def create_client(self, name: str) -> models.Client:
-        await self.connector.create_client(name)
-        return (await self.get_clients())[-1]  # Return the last client
+    async def get_client(self, client_id: models.ClientID) -> models.Client:
+        resp = await self._request(
+            "GET",
+            f"client/{client_id}",
+        )
+        return await validate_response(resp, models.Client)
 
-    @_autoauth
-    async def delete_client(self, client_id: str):
-        await self.connector.delete_client(client_id)
-        return True
+    async def create_client(
+        self, client_data: models.ClientPost
+    ) -> models.ClientPostReturn:
+        resp = await self._request(
+            "POST",
+            "client",
+            json=client_data.model_dump(),
+        )
+        return await validate_response(resp, models.ClientPostReturn)
 
-    @_autoauth
-    async def rename_client(self, client_id: str, new_name: str):
-        await self.connector.udpate_client_name(client_id, new_name)
-        return True
+    async def delete_client(self, client_id: models.ClientID) -> models.Success:
+        resp = await self._request(
+            "DELETE",
+            f"client/{client_id}",
+        )
+        return await validate_response(resp, models.Success)
 
-    @_autoauth
-    async def enable_client(self, client_id: str):
-        await self.connector.enable_client(client_id)
-        return True
+    async def enable_client(self, client_id: models.ClientID) -> models.Success:
+        resp = await self._request(
+            "POST",
+            f"client/{client_id}/enable",
+        )
+        return await validate_response(resp, models.Success)
 
-    @_autoauth
-    async def disable_client(self, client_id: str):
-        await self.connector.disable_client(client_id)
-        return True
+    async def disable_client(self, client_id: models.ClientID) -> models.Success:
+        resp = await self._request(
+            "POST",
+            f"client/{client_id}/disable",
+        )
+        return await validate_response(resp, models.Success)
 
-    @_autoauth
-    async def change_client_address(self, client_id: str, new_address: str):
-        await self.connector.update_client_address(client_id, new_address)
-        return True
-
-    @_autoauth
-    async def get_client_config(self, client_id: str):
-        return await self.connector.get_client_config(client_id)
-    
-    @_autoauth
-    async def get_client_qrcode(self, client_id: str):
-        return await self.connector.get_client_qrcode(client_id)
-    
-    @_autoauth
-    async def backup_config(self):
-        return await self.connector.backup_config()
-    
-    @_autoauth
-    async def restore_config(self, config: str):
-        return await self.connector.restore_config(config)
+    async def get_client_config(self, client_id: models.ClientID) -> str:
+        resp = await self._request(
+            "GET",
+            f"client/{client_id}/configuration",
+        )
+        return await resp.text()

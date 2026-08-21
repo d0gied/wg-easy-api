@@ -1,35 +1,83 @@
-from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
+
+from heliclockter import datetime_utc
+from pydantic import BaseModel, HttpUrl, field_validator
+
+ClientID = int
 
 
 class Client(BaseModel):
-    id: str = Field(...)
-    name: str = Field(...)
-    enabled: bool = Field(...)
-    address: str = Field(...)
-    public_key: str = Field(..., alias="publicKey")
-    created_at: datetime = Field(..., alias="createdAt")
-    updated_at: datetime | None = Field(..., alias="updatedAt")
-    expired_at: datetime | None = Field(..., alias="expiredAt")
-    one_time_link: str | None = Field(..., alias="oneTimeLink")
-    one_time_link_expires_at: datetime | None = Field(..., alias="oneTimeLinkExpiresAt")
-    downloadable_config: bool = Field(..., alias="downloadableConfig")
-    persistent_keepalive: int | None = Field(..., alias="persistentKeepalive")
-    latest_handshake_at: datetime | None = Field(..., alias="latestHandshakeAt")
-    transfer_rx: int | None = Field(..., alias="transferRx")
-    transfer_tx: int | None = Field(..., alias="transferTx")
-    endpoint: str | None = Field(...)
+    id: ClientID
+    userId: int
+    interfaceId: str
+    name: str
+    ipv4Address: str
+    ipv6Address: str
+    preUp: str
+    postUp: str
+    preDown: str
+    postDown: str
+    publicKey: str
+    privateKey: str | None = None  # ommited in GET api/client
+    preSharedKey: str | None = None  # ommited in GET api/client
+    expiresAt: datetime_utc | None
+    allowedIps: str | None
+    serverAllowedIps: list[str]
+    firewallIps: str | None
+    persistentKeepalive: int
+    mtu: int
+    jC: int
+    jMin: int
+    jMax: int
+    i1: int | None
+    i2: int | None
+    i3: int | None
+    i4: int | None
+    i5: int | None
+    dns: str | None
+    serverEndpoint: str | None
+    enabled: bool
+    createdAt: datetime
+    updatedAt: datetime
+    # ommited in GET api/client/{id} if client.enabled == False
+    endpoint: str | None = None
 
-    @field_validator("persistent_keepalive", mode="before")
-    def validate_persistent_keepalive(cls, v):
-        if v == "off":
-            return None
-        return v
+    @field_validator("createdAt", "updatedAt", "expiresAt", mode="before")
+    @classmethod
+    def parse_datetime(cls, value: object):
+        if not isinstance(value, str):
+            return value
+        if value.endswith("Z"):
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
 
 
-class Session(BaseModel):
-    requires_password: bool = Field(..., alias="requiresPassword")
-    authenticated: bool = Field(...)
+class ClientPost(BaseModel):
+    name: str
+    expiresAt: datetime_utc | None = None
+
+
+class ClientPostReturn(BaseModel):
+    success: bool
+    clientId: ClientID
+
+
+class ErrorModel(BaseModel):
+    error: bool
+    url: HttpUrl
+    statusCode: int
+    statusMessage: str
+    message: str
+    data: dict[str, str] | None = None
+
+
+class ApiError(Exception):
+    details: ErrorModel
+
+    def __init__(self, details: ErrorModel):
+        self.details = details
+        super().__init__(self.details.message)
+
 
 class Success(BaseModel):
-    success: bool = Field(...)
+    success: bool
