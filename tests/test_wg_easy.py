@@ -1,50 +1,53 @@
-from wg_easy_api import WGEasy
 import pytest
-from tests.config import Config
+import pytest_asyncio
+
+import wg_easy_api
+from tests.config import env_config
+from wg_easy_api import WGEasy
+
+
+@pytest_asyncio.fixture
+async def wg():
+    yield WGEasy(
+        base_url=env_config.wg_easy_url,
+        username=env_config.wg_easy_username,
+        password=env_config.wg_easy_password,
+    )
 
 
 @pytest.mark.asyncio
-async def test_client():
-    wg_easy = WGEasy(Config.MOCK_ENDPOINT, Config.MOCK_PASSWORD)
-    client = await wg_easy.create_client("Test Client")
-    assert client.name == "Test Client"
-    assert client.enabled == True
-    assert client.id is not None
-    assert client.created_at is not None
-    assert client.updated_at is not None
-    assert client.public_key is not None
-    assert client.address is not None
+async def test_get_all_clients(wg: WGEasy):
+    _ = await wg.get_clients()
 
-    address = client.address
 
-    found_client = await wg_easy.get_client(client.id)
-    assert found_client is not None
-    assert found_client.name == "Test Client"
-    assert found_client.enabled == True
-    assert found_client.id == client.id
-    assert found_client.address == address
+@pytest.mark.asyncio
+async def test_bad_id(wg: WGEasy):
+    with pytest.raises(wg_easy_api.ApiError) as e:
+        _ = await wg.get_client(0)
+    assert e.value.details.statusCode == 404
 
-    await wg_easy.rename_client(client.id, "Test Client 2")
-    found_client = await wg_easy.get_client(client.id)
-    assert found_client.name == "Test Client 2"
-    assert found_client.updated_at > client.created_at
 
-    await wg_easy.change_client_address(client.id, "10.20.30.40")
-    found_client = await wg_easy.get_client(client.id)
-    assert found_client.address == "10.20.30.40"
+@pytest.mark.asyncio
+async def test_client_lifecycle(wg: WGEasy):
+    client_name = "test_client"
+    created_client = await wg.create_client(
+        wg_easy_api.ClientPost(name=client_name),
+    )
 
-    await wg_easy.disable_client(client.id)
-    found_client = await wg_easy.get_client(client.id)
+    found_client = await wg.get_client(created_client.clientId)
+    assert found_client.name == client_name
+
+    _ = await wg.disable_client(found_client.id)
+    found_client = await wg.get_client(found_client.id)
     assert found_client.enabled == False
 
-    await wg_easy.enable_client(client.id)
-    found_client = await wg_easy.get_client(client.id)
+    _ = await wg.enable_client(found_client.id)
+    found_client = await wg.get_client(found_client.id)
     assert found_client.enabled == True
 
-    await wg_easy.get_client_config(client.id)
-    await wg_easy.get_client_qrcode(client.id)
+    _ = await wg.get_client_config(found_client.id)
 
-    await wg_easy.delete_client(client.id)
-    found_client = await wg_easy.get_client(client.id)
-    assert found_client is None
+    _ = await wg.delete_client(found_client.id)
 
+    with pytest.raises(wg_easy_api.ApiError):
+        found_client = await wg.get_client(found_client.id)
