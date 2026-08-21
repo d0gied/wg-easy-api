@@ -1,0 +1,6 @@
+aiohttp
+pydantic
+heliclockter
+pydantic-settings
+pytest
+pytest-asyncio
