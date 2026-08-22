@@ -91,7 +91,8 @@ changed_client=$(
 
 run_curl POST "client/$client_id" \
   -H "Content-Type: application/json" \
-  -d "$changed_client" | check_success "Update client"
+  -d "$changed_client" |
+  check_success "Update client"
 
 changed_client=$(get_client "$client_id")
 
