@@ -34,8 +34,19 @@ async def test_client_lifecycle(wg: WGEasy):
         wg_easy_api.ClientPost(name=client_name),
     )
 
-    found_client = await wg.get_client(created_client.clientId)
+    client_id = created_client.clientId
+
+    found_client = await wg.get_client(client_id)
+    assert found_client.enabled == True
     assert found_client.name == client_name
+
+    found_client.name = new_name = "new name"
+    found_client.ipv4Address = new_ip = "10.8.0.99"
+
+    _ = await wg.update_client(found_client)
+    updated_client = await wg.get_client(client_id)
+    assert updated_client.name == new_name
+    assert updated_client.ipv4Address == new_ip
 
     _ = await wg.disable_client(found_client.id)
     found_client = await wg.get_client(found_client.id)

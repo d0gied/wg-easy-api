@@ -1,6 +1,6 @@
 from typing import TypeVar, overload
 
-from aiohttp import BasicAuth, ClientResponse, ClientSession, encode_basic_auth
+from aiohttp import ClientResponse, ClientSession, encode_basic_auth
 from pydantic import BaseModel, TypeAdapter
 
 import wg_easy_api.models as models
@@ -54,7 +54,7 @@ class WGEasy:
             if not resp.ok:
                 json = await resp.json()  # pyright: ignore[reportAny]
                 print(json)
-                error_detail = models.ErrorModel.model_validate(json)
+                error_detail = models.ApiErrorModel.model_validate(json)
                 raise models.ApiError(error_detail)
             return resp
 
@@ -81,6 +81,14 @@ class WGEasy:
             json=client_data.model_dump(),
         )
         return await validate_response(resp, models.ClientPostReturn)
+
+    async def update_client(self, client: models.Client) -> models.Success:
+        resp = await self._request(
+            "POST",
+            f"client/{client.id}",
+            json=client.model_dump(),
+        )
+        return await validate_response(resp, models.Success)
 
     async def delete_client(self, client_id: models.ClientID) -> models.Success:
         resp = await self._request(

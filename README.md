@@ -41,9 +41,9 @@ wg = WGEasy(
     password="secure_password",
 )
 
+
 async def main():
     clients: list[Client] = await wg.get_clients()
-    _: Client = await wg.get_client(clients[0].id)
 
     try:
         _: Client = await wg.get_client(0)
@@ -55,6 +55,10 @@ async def main():
     )
 
     client_id: ClientID = client_info.clientId  # ClientID = int
+
+    client: Client = await wg.get_client(client_id)
+    client.name = "new_name"
+    _: Success = await wg.update_client(client)
 
     _: Success = await wg.disable_client(client_id)
     _: Success = await wg.enable_client(client_id)

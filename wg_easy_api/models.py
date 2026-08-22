@@ -1,7 +1,6 @@
 from datetime import datetime
 
-from heliclockter import datetime_utc
-from pydantic import BaseModel, HttpUrl, field_validator
+from pydantic import BaseModel, HttpUrl, field_serializer, field_validator
 
 ClientID = int
 
@@ -20,7 +19,7 @@ class Client(BaseModel):
     publicKey: str
     privateKey: str | None = None  # ommited in GET api/client
     preSharedKey: str | None = None  # ommited in GET api/client
-    expiresAt: datetime_utc | None
+    expiresAt: datetime | None
     allowedIps: str | None
     serverAllowedIps: list[str]
     firewallIps: str | None
@@ -51,10 +50,16 @@ class Client(BaseModel):
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
         return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
 
+    @field_serializer("createdAt", "updatedAt", "expiresAt")
+    def serialize_datetime(self, dt: datetime | None) -> str | None:
+        if dt is None:
+            return None
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+
 
 class ClientPost(BaseModel):
     name: str
-    expiresAt: datetime_utc | None = None
+    expiresAt: datetime | None = None
 
 
 class ClientPostReturn(BaseModel):
@@ -62,7 +67,7 @@ class ClientPostReturn(BaseModel):
     clientId: ClientID
 
 
-class ErrorModel(BaseModel):
+class ApiErrorModel(BaseModel):
     error: bool
     url: HttpUrl
     statusCode: int
@@ -72,9 +77,9 @@ class ErrorModel(BaseModel):
 
 
 class ApiError(Exception):
-    details: ErrorModel
+    details: ApiErrorModel
 
-    def __init__(self, details: ErrorModel):
+    def __init__(self, details: ApiErrorModel):
         self.details = details
         super().__init__(self.details.message)
 
