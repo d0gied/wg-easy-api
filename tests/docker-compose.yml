@@ -34,7 +34,8 @@ services:
 
   curl-tests:
     build:
-      context: .
+      context: ..
+      dockerfile: tests/Dockerfile
       network: host
     command: sh ./tests/curl.sh
     environment: &env
@@ -47,11 +48,12 @@ services:
     networks:
       - wg
 
-  python-tests:
+  pytest:
     build:
-      context: .
+      context: ..
+      dockerfile: tests/Dockerfile
       network: host
-    command: python -m pytest tests/test_wg_easy.py
+    command: pytest
     environment: *env
     depends_on:
       wg-easy:
