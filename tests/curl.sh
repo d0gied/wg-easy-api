@@ -2,8 +2,6 @@
 
 tmp_errors_file=$(mktemp)
 
-shopt -s lastpipe
-
 auth="$WG_EASY_USERNAME:$WG_EASY_PASSWORD"
 base_url=$WG_EASY_URL/api
 
