@@ -67,18 +67,17 @@ async def main():
 # Project structure
 
 ```
-├── docker-compose.yml
-├── Dockerfile
 ├── LICENSE
 ├── poetry.lock
 ├── pyproject.toml
 ├── README.md
 ├── tests
-│   ├── config.py
-│   ├── curl.sh
-│   ├── example.py
-│   ├── __init__.py
-│   └── test_wg_easy.py
+│   ├── config.py
+│   ├── curl.sh
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── __init__.py
+│   └── test_wg_easy.py
 └── wg_easy_api
     ├── __init__.py
     ├── models.py
@@ -101,8 +100,8 @@ Services:
 - curl-tests
 - pytest
 
-> In docker-compose.yml you can find a working wg-easy service, could be helpful.
-> If you have problems with setting everything up locally, you can always look at [Dockerfile](Dockerfile) and [docker-compose.yml](docker-compose.yml).
+> In [docker-compose.yml](tests/docker-compose.yml) you can find a working wg-easy service, could be helpful.
+> If you have problems with setting everything up locally, you can always look at [Dockerfile](tests/Dockerfile) and [docker-compose.yml](tests/docker-compose.yml).
 
 # Python tests setup
 
